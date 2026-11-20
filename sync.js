@@ -10,7 +10,7 @@ const q=id=>document.getElementById(id);
 /* ===== Skrin log masuk ===== */
 const ov=document.createElement('div');
 ov.style.cssText='position:fixed;inset:0;z-index:50;background:#fff0f6;display:'+(ls.getItem(IN)?'none':'flex')+';align-items:center;justify-content:center;padding:20px';
-ov.innerHTML='<div class="card" style="width:100%;max-width:380px"><h3>💖 Log Masuk</h3><p class="small">Log masuk supaya data disimpan selamat dalam awan dan boleh dibuka di telefon lain.</p>'+
+ov.innerHTML='<div class="card" style="width:100%;max-width:380px"><h3>Log Masuk 💖</h3><p class="small">Log masuk supaya data disimpan selamat dalam awan dan boleh dibuka di telefon lain.</p>'+
  '<label>Emel</label><input id="sy-e" type="email" autocomplete="email" autocapitalize="off">'+
  '<label>Kata laluan (minimum 6 aksara)</label><input id="sy-p" type="password" autocomplete="current-password">'+
  '<p id="sy-m" style="color:#c2185b;font-size:12px;font-weight:700;margin-top:8px"></p>'+
