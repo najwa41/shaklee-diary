@@ -305,11 +305,12 @@ $('w-tarikh').value=ymd(new Date());$('r-tarikh').value=ymd(new Date());$('w-bul
   const N = n => Math.round(n).toLocaleString('en-US');
   const BL = ['Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun', 'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember'];
   const RATIO = 3.4;
+  const SASARAN = 2500;
   const TIERS = [[150, 5], [300, 8], [600, 11], [1200, 14], [2000, 17], [3000, 21]];
   const bulanSkrg = () => { const n = new Date(); return n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0'); };
   const label = m => { const [y, mo] = m.split('-').map(Number); return BL[mo - 1] + ' ' + y; };
   const hari = () => { const n = new Date(); return n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0'); };
-  const V = () => { if (!D.vrg) D.vrg = {}; const v = D.vrg; v.orders = v.orders || []; v.cust = v.cust || []; v.chal = v.chal || []; v.tgt = v.tgt || {}; v.man = v.man || {}; v.nama = v.nama || ''; return v; };
+  const V = () => { if (!D.vrg) D.vrg = {}; const v = D.vrg; v.orders = v.orders || []; v.cust = v.cust || []; v.chal = v.chal || []; v.tgt = v.tgt || {}; v.man = v.man || {}; v.manPv = v.manPv || {}; v.nama = v.nama || ''; return v; };
   const tst = t => { try { toast(t); } catch (e) { } };
   let M = bulanSkrg(), cur = 'hari', prev = 'lagi';
 
@@ -317,9 +318,11 @@ $('w-tarikh').value=ymd(new Date());$('r-tarikh').value=ymd(new Date());$('w-bul
     const v = V(), L = v.orders.filter(o => String(o.t).slice(0, 7) === m);
     const man = Number(v.man[m]) || 0;
     const uv = L.reduce((a, o) => a + (Number(o.uv) || 0), 0) + man;
-    const pv = L.reduce((a, o) => a + (Number(o.pv) || 0), 0) + man * RATIO;
+    const pvOrder = L.reduce((a, o) => a + (Number(o.pv) || 0), 0);
+    const mpv = v.manPv[m];
+    const pv = pvOrder + (mpv !== undefined ? (Number(mpv) || 0) : man * RATIO);
     const untung = L.reduce((a, o) => a + (o.jenis === 'Jualan' ? (Number(o.retail) || 0) - (Number(o.member) || 0) : 0), 0);
-    return { L, uv, pv, untung, man };
+    return { L, uv, pv, pvOrder, untung, man };
   }
   const tier = uv => { let t = null; TIERS.forEach(x => { if (uv >= x[0]) t = x; }); return t; };
   function hariTinggal(m) {
@@ -360,7 +363,7 @@ $('w-tarikh').value=ymd(new Date());$('r-tarikh').value=ymd(new Date());$('w-bul
     '<label>Item / nota</label><input id="vo-i" placeholder="Cth: Vita-Lea 2 botol">' +
     '<div class="row"><div><label>Harga retail (RM)</label><input type="number" id="vo-r" inputmode="decimal"></div><div><label>Harga member (RM)</label><input type="number" id="vo-m" inputmode="decimal"></div></div>' +
     '<div class="row"><div><label>PV (RM)</label><input type="number" id="vo-p" inputmode="decimal" oninput="vrPv()"></div><div><label>UV</label><input type="number" id="vo-u" inputmode="decimal"></div></div>' +
-    '<p class="small">UV dianggarkan automatik daripada PV (PV ÷ 3.4). Boleh diubah mengikut resit rasmi.</p>' +
+    '<p class="small">UV dicadangkan automatik daripada PV (PV ÷ 3.4). Ubah mengikut resit rasmi jika berbeza. Selepas simpan, UV, PV dan untung bulan ini bertambah sendiri.</p>' +
     '<div class="btns"><button class="btn" onclick="vrOrder()">💾 Simpan Order</button></div></div>' +
     '<div class="card"><h3>📦 Order Bulan Ini</h3><div id="vo-l"></div></div>');
 
@@ -383,7 +386,9 @@ $('w-tarikh').value=ymd(new Date());$('r-tarikh').value=ymd(new Date());$('w-bul
     '<div class="card"><h3>⚙️ Tetapan Tracker</h3><p class="small">Bulan: <b class="vr-bl"></b> (tukar bulan di halaman Hari Ini)</p>' +
     '<label>Nama anda</label><input id="vs-n">' +
     '<label>Sasaran UV bulan ini</label><input type="number" id="vs-t" inputmode="decimal">' +
-    '<label>UV tambahan manual bulan ini (di luar order)</label><input type="number" id="vs-m" inputmode="decimal">' +
+    '<label>UV semasa dari app VRG / Shaklee (isi sekali sebulan)</label><input type="number" id="vs-m" inputmode="decimal">' +
+    '<label>PV semasa dari app VRG / Shaklee (kosongkan = anggar dari UV)</label><input type="number" id="vs-p" inputmode="decimal">' +
+    '<p class="small">Isi UV dan PV seperti dalam akaun Shaklee. Order yang dimasukkan selepas ini akan ditambah automatik di atasnya.</p>' +
     '<div class="btns"><button class="btn" onclick="vrTet()">💾 Simpan Tetapan</button></div></div>' +
     '<div class="card"><h3>📂 Menu Lain</h3><div class="btns">' +
     '<button class="btn" onclick="pg(\'wang\')">💰 Duit Masuk / Keluar</button>' +
@@ -411,9 +416,9 @@ $('w-tarikh').value=ymd(new Date());$('r-tarikh').value=ymd(new Date());$('w-bul
 
   function rHari() {
     rBln();
-    const v = V(), s = stat(M), tg = Number(v.tgt[M]) || 3000, pct = Math.min(100, s.uv / tg * 100), lag = Math.max(0, tg - s.uv), ht = hariTinggal(M);
+    const v = V(), s = stat(M), tg = Number(v.tgt[M]) || SASARAN, pct = Math.min(100, s.uv / tg * 100), lag = Math.max(0, tg - s.uv), ht = hariTinggal(M);
     const t = tier(s.uv), nx = TIERS.find(x => s.uv < x[0]), est = s.pv * (t ? t[1] : 0) / 100;
-    let h = '<div class="vr-hero"><div class="vr-row"><div><div class="vr-hi">Hi, ' + E(v.nama || 'Sayang') + ' 🤍</div><div class="vr-cap">PROGRESS ' + label(M).toUpperCase() + '</div></div><button class="vr-pill" onclick="vrKemas()">✎ Kemas kini</button></div>' +
+    let h = '<div class="vr-hero"><div class="vr-row"><div><div class="vr-hi">Hi, ' + E(v.nama || 'Najwa') + ' 🤍</div><div class="vr-cap">PROGRESS ' + label(M).toUpperCase() + '</div></div><button class="vr-pill" onclick="vrKemas()">✎ Kemas kini</button></div>' +
       '<div class="vr-num">' + N(s.uv) + ' <small>UV</small> <span>/ ' + N(tg) + ' UV</span></div><div class="vr-bar"><i style="width:' + pct + '%"></i></div>' +
       '<div class="vr-row"><span>' + Math.round(pct) + '% capai</span><span>Lagi ' + N(lag) + ' UV</span></div></div>';
     h += '<div class="vr-g">' +
@@ -442,7 +447,7 @@ $('w-tarikh').value=ymd(new Date());$('r-tarikh').value=ymd(new Date());$('w-bul
     const v = V(), s = stat(M);
     $('vo-dl').innerHTML = v.cust.map(c => '<option value="' + E(c.nama) + '">').join('');
     $('vo-l').innerHTML = s.L.length ?
-      '<p class="small" style="margin-bottom:8px">Jumlah: ' + N(s.uv - s.man) + ' UV · ' + N(s.pv - s.man * RATIO) + ' PV · Untung ' + R(s.untung) + '</p>' +
+      '<p class="small" style="margin-bottom:8px">Jumlah order: ' + N(s.uv - s.man) + ' UV · ' + N(s.pvOrder) + ' PV · Untung ' + R(s.untung) + '</p>' +
       [...s.L].sort((a, b) => a.t < b.t ? 1 : -1).map(o =>
         '<div class="item"><h4>' + E(o.nama || '-') + ' <span class="small">(' + (o.jenis === 'Jualan' ? 'Jualan' : 'Beli sendiri') + ')</span></h4>' +
         o.t + (o.item ? ' | ' + E(o.item) : '') + '<br>Retail ' + R(o.retail || 0) + ' · Member ' + R(o.member || 0) + ' · PV ' + N(o.pv || 0) + ' · <b>' + (Number(o.uv) || 0) + ' UV</b>' +
@@ -479,7 +484,8 @@ $('w-tarikh').value=ymd(new Date());$('r-tarikh').value=ymd(new Date());$('w-bul
 
   function rLagi() {
     rBln(); const v = V();
-    $('vs-n').value = v.nama || ''; $('vs-t').value = v.tgt[M] || 3000; $('vs-m').value = v.man[M] || '';
+    $('vs-n').value = v.nama || ''; $('vs-t').value = v.tgt[M] || SASARAN; $('vs-m').value = v.man[M] || '';
+    $('vs-p').value = v.manPv[M] === undefined ? '' : v.manPv[M];
   }
 
   const RN = { hari: rHari, order: rOrder, chal: rChal, cust: rCust, lagi: rLagi };
@@ -497,9 +503,16 @@ $('w-tarikh').value=ymd(new Date());$('r-tarikh').value=ymd(new Date());$('w-bul
   window.vrM = d => { const [y, m] = M.split('-').map(Number), x = new Date(y, m - 1 + d, 1); M = x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0'); segar(); };
   window.vrPv = () => { const p = parseFloat($('vo-p').value); if (p > 0) $('vo-u').value = Math.round(p / RATIO * 10) / 10; };
   window.vrKemas = () => {
-    const v = V(), x = prompt('UV tambahan manual untuk ' + label(M) + ' (di luar order):', v.man[M] || 0);
-    if (x === null) return; const n = parseFloat(x); if (isNaN(n)) return tst('Nombor tidak sah');
-    v.man[M] = n; save(); tst('Dikemas kini 🤍');
+    const v = V();
+    const u = prompt('UV semasa untuk ' + label(M) + ' (seperti dalam app VRG / Shaklee):', v.man[M] || 0);
+    if (u === null) return;
+    const p = prompt('PV semasa (kosongkan = anggar dari UV):', v.manPv[M] === undefined ? '' : v.manPv[M]);
+    if (p === null) return;
+    const un = parseFloat(u); if (isNaN(un)) return tst('Nombor tidak sah');
+    v.man[M] = un;
+    if (p.trim() === '') delete v.manPv[M];
+    else { const pn = parseFloat(p); if (isNaN(pn)) return tst('PV tidak sah'); v.manPv[M] = pn; }
+    save(); tst('Dikemas kini 🤍');
   };
   window.vrOrder = () => {
     const v = V(), pv = parseFloat($('vo-p').value) || 0, uv = parseFloat($('vo-u').value) || (pv / RATIO), retail = parseFloat($('vo-r').value) || 0, member = parseFloat($('vo-m').value) || 0;
@@ -519,7 +532,7 @@ $('w-tarikh').value=ymd(new Date());$('r-tarikh').value=ymd(new Date());$('w-bul
   window.vrNilai = (id, d) => { const c = V().chal.find(x => x.id === id); if (c) { c.nilai = Math.max(0, (Number(c.nilai) || 0) + d); save(); } };
   window.vrCust = () => {
     const n = $('vu-n').value.trim(); if (!n) return tst('Isi nama');
-    V().cust.push({ id: idBaru(), nama: n, tel: $('vu-t').value.trim(), nota: $('vu-o').value.trim() });
+    V().chal; V().cust.push({ id: idBaru(), nama: n, tel: $('vu-t').value.trim(), nota: $('vu-o').value.trim() });
     ['vu-n', 'vu-t', 'vu-o'].forEach(i => $(i).value = ''); save(); tst('Customer disimpan 🤍');
   };
   window.vrWa = id => { const c = V().cust.find(x => x.id === id); if (!c) return; let n = c.tel.replace(/\D/g, ''); if (n.startsWith('0')) n = '6' + n; window.open('https://wa.me/' + n, '_blank'); };
@@ -527,7 +540,9 @@ $('w-tarikh').value=ymd(new Date());$('r-tarikh').value=ymd(new Date());$('w-bul
   window.vrPadam = (k, id) => { if (!confirm('Padam item ini?')) return; const v = V(); v[k] = v[k].filter(x => x.id !== id); save(); };
   window.vrTet = () => {
     const v = V(); v.nama = $('vs-n').value.trim();
-    v.tgt[M] = parseFloat($('vs-t').value) || 3000; v.man[M] = parseFloat($('vs-m').value) || 0;
+    v.tgt[M] = parseFloat($('vs-t').value) || SASARAN; v.man[M] = parseFloat($('vs-m').value) || 0;
+    const p = $('vs-p').value.trim();
+    if (p === '') delete v.manPv[M]; else v.manPv[M] = parseFloat(p) || 0;
     save(); tst('Tetapan disimpan 🤍');
   };
 
