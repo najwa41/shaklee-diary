@@ -1,4 +1,4 @@
-const CACHE_NAME = 'shaklee-diary-v1';
+const CACHE_NAME = 'shaklee-diary-v2';
 const ASSETS = [
   './',
   './index.html',
