@@ -1,0 +1,21 @@
+{
+  "name": "Shaklee Diary",
+  "short_name": "Shaklee Diary",
+  "description": "Sistem kecil untuk makwe tercinta",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#fff0f6",
+  "theme_color": "#ff7eb6",
+  "icons": [
+    {
+      "src": "logo.jpg.PNG",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "logo.jpg.PNG",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
