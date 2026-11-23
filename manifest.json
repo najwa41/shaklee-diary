@@ -1,6 +1,6 @@
 {
-  "name": "Shaklee Diary",
-  "short_name": "Shaklee Diary",
+  "name": "My Shaklee Diary",
+  "short_name": "My Shaklee Diary",
   "description": "Sistem kecil untuk makwe tercinta",
   "start_url": "./index.html",
   "display": "standalone",
